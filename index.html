@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Projekt M-II — Chaotyczne przekształcanie obrazu cyfrowego</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-title">Projekt M‑II <span>// Chaotyczne przekształcanie obrazu cyfrowego</span></div>
+  <div class="header-meta">
+    Termin oddania: 26.04.2026 &nbsp;|&nbsp; Obrona: 29.04.2026<br>
+    Dokumentacja min. 10 stron &nbsp;|&nbsp; JavaScript + Canvas API
+  </div>
+</header>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <span class="sidebar-label">Wczytaj obraz</span>
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-icon">⬆</div>
+        <div class="upload-text">PNG / JPEG / BMP</div>
+        <div class="upload-sub" id="uploadSub">Kliknij lub przeciągnij</div>
+      </div>
+      <input type="file" id="fileInput" accept="image/png,image/jpeg,image/bmp">
+    </div>
+    <div class="sample-btns">
+      <button class="sample-btn" onclick="genChessboard()">⊞ Szachownica 8×8</button>
+      <button class="sample-btn" onclick="genGradient()">▤ Gradient kolorowy</button>
+      <button class="sample-btn" onclick="genText()">Ⅰ Obraz tekstowy</button>
+      <button class="sample-btn" onclick="genNatural()">◈ Obraz naturalny</button>
+    </div>
+
+    <hr class="sidebar-divider">
+
+    <div class="sidebar-section">
+      <span class="sidebar-label">Etapy</span>
+      <button class="nav-btn active" onclick="showPanel('p0')" id="nav-p0">
+        <div class="nav-indicator"></div>
+        Etap 1 — Naiwny scrambling
+        <span class="stage-badge badge-warn">Porażka</span>
+      </button>
+      <button class="nav-btn" onclick="showPanel('p1')" id="nav-p1">
+        <div class="nav-indicator"></div>
+        Etap 2 — Permutacja kluczem
+        <span class="stage-badge badge-ok">P⁻¹</span>
+      </button>
+      <button class="nav-btn" onclick="showPanel('p2')" id="nav-p2">
+        <div class="nav-indicator"></div>
+        Etap 3 — Mechanizm wzmacniający
+        <span class="stage-badge badge-strong">Hybryda</span>
+      </button>
+    </div>
+
+    <hr class="sidebar-divider">
+
+    <div class="sidebar-section">
+      <span class="sidebar-label">Analiza</span>
+      <button class="nav-btn" onclick="showPanel('p3')" id="nav-p3">
+        <div class="nav-indicator"></div>
+        Analiza eksperymentalna
+      </button>
+      <button class="nav-btn" onclick="showPanel('p4')" id="nav-p4">
+        <div class="nav-indicator"></div>
+        Krytyka własnego rozwiązania
+      </button>
+    </div>
+
+    <div class="sidebar-stats">
+      <div class="stat-row"><span class="stat-key">Obraz</span><span class="stat-val" id="stat-size">—</span></div>
+      <div class="stat-row"><span class="stat-key">Pikseli</span><span class="stat-val" id="stat-pixels">—</span></div>
+      <div class="stat-row"><span class="stat-key">Entropia oryg.</span><span class="stat-val" id="stat-entropy">—</span></div>
+      <div class="stat-row"><span class="stat-key">Korelacja oryg.</span><span class="stat-val" id="stat-corr">—</span></div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- PANEL 0 — STAGE 1 -->
+    <div class="panel active" id="p0">
+      <div class="panel-header">
+        <div class="panel-title"><span class="stage-num">01 /</span> Naiwny scrambling <span class="tag tag-fail">Etap porażki</span></div>
+        <div class="panel-desc">
+          Deterministyczne przesunięcie wierszy i kolumn (cykliczne, sterowane kluczem). Brak chaotyczności — lokalne struktury obrazu przetrwają.
+          Funkcja scramblingу: <code>dst[(y+k₁)%H][(x+k₂)%W] = src[y][x]</code>. Unscrambling: operacja odwrotna tymi samymi kluczami.
+        </div>
+      </div>
+
+      <div class="algo-box">
+        <span class="cmt">// ALGORYTM SCRAMBLING — Etap 1</span><br>
+        <span class="kw">for</span> y in [<span class="num">0</span>..H): <span class="kw">for</span> x in [<span class="num">0</span>..W):<br>
+        &nbsp;&nbsp;dst[<span class="fn">(y + key1) % H</span>][<span class="fn">(x + key2) % W</span>] = src[y][x]<br><br>
+        <span class="cmt">// ALGORYTM UNSCRAMBLING — Etap 1 (funkcja odwrotna)</span><br>
+        <span class="kw">for</span> y in [<span class="num">0</span>..H): <span class="kw">for</span> x in [<span class="num">0</span>..W):<br>
+        &nbsp;&nbsp;dst[<span class="fn">(y - key1 + H) % H</span>][<span class="fn">(x - key2 + W) % W</span>] = scrambled[y][x]
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Parametry</div>
+          <div class="form-row">
+            <div class="field"><label>Klucz k₁ (przesunięcie wierszy)</label><input type="number" id="e1k1" value="47" min="1" max="9999"></div>
+            <div class="field"><label>Klucz k₂ (przesunięcie kolumn)</label><input type="number" id="e1k2" value="83" min="1" max="9999"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle" id="e1wrongToggle" onclick="toggleWrong(1)"><div class="toggle-knob"></div></div>
+            <span class="toggle-label">Błędny klucz (+1 do k₁ i k₂) — symulacja ataku</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Akcje</div>
+          <div class="btn-row">
+            <button class="btn btn-scramble" onclick="e1Scramble()">⟳ Scramble</button>
+            <button class="btn btn-unscramble" onclick="e1Unscramble()">⟲ Unscramble</button>
+            <button class="btn btn-save" onclick="saveCanvas('e1Scrambled')">↓ Zapisz</button>
+          </div>
+          <div class="infobox amber">
+            <strong>Słabości metody:</strong> Szachownica i gradienty pozostają w pełni rozpoznawalne — lokalna korelacja pikseli nie ulega zniszczeniu. Periodyczność przesunięcia umożliwia atak brute-force.
+          </div>
+        </div>
+      </div>
+
+      <div class="canvas-grid">
+        <div class="canvas-box">
+          <div class="canvas-label">Oryginalny</div>
+          <div class="canvas-wrap"><canvas id="e1Orig"></canvas><div class="canvas-placeholder" id="e1OrigPh">Wczytaj obraz<br>lub wybierz próbkę</div></div>
+        </div>
+        <div class="canvas-box">
+          <div class="canvas-label">Po scramblingu (Etap 1)</div>
+          <div class="canvas-wrap"><canvas id="e1Scrambled"></canvas><div class="canvas-placeholder" id="e1ScrPh">Naciśnij Scramble</div></div>
+        </div>
+        <div class="canvas-box">
+          <div class="canvas-label">Odtworzony (unscramble)</div>
+          <div class="canvas-wrap"><canvas id="e1Restored"></canvas><div class="canvas-placeholder" id="e1ResPh">Naciśnij Unscramble</div></div>
+        </div>
+      </div>
+
+      <div class="metrics-bar">
+        <div class="metric"><span class="metric-val" id="e1mCorr">—</span><span class="metric-lbl">Korelacja pikseli po scramblingu</span></div>
+        <div class="metric"><span class="metric-val" id="e1mEnt">—</span><span class="metric-lbl">Entropia (bit)</span></div>
+        <div class="metric"><span class="metric-val" id="e1mDiff">—</span><span class="metric-lbl">Błąd unscrambl. (MAE)</span></div>
+        <div class="metric"><span class="metric-val" id="e1mPerfect">—</span><span class="metric-lbl">Odtworzenie</span></div>
+      </div>
+
+      <div class="log-box" id="e1log"><div class="log-entry log-info">// Gotowy. Wczytaj obraz i naciśnij Scramble.</div></div>
+    </div>
+
+    <!-- PANEL 1 — STAGE 2 -->
+    <div class="panel" id="p1">
+      <div class="panel-header">
+        <div class="panel-title"><span class="stage-num">02 /</span> Czysta permutacja sterowana kluczem <span class="tag tag-perm">P⁻¹(P(i))=i</span></div>
+        <div class="panel-desc">
+          Permutacja Fisher-Yates sterowana seedem. Brak zmiany wartości pikseli — tylko zmiana kolejności.
+          <strong>P : {0…N-1} → {0…N-1}</strong> — funkcja bijekcyjna. Unscrambling przez jawną funkcję odwrotną P⁻¹.
+        </div>
+      </div>
+
+      <div class="algo-box">
+        <span class="cmt">// ALGORYTM SCRAMBLING — Fisher-Yates (seed-controlled)</span><br>
+        perm = <span class="fn">fisherYates</span>(N, <span class="fn">seededRNG</span>(seed)) &nbsp;<span class="cmt">// permutacja P</span><br>
+        <span class="kw">for</span> i in [<span class="num">0</span>..N): dst[perm[i]] = src[i]<br><br>
+        <span class="cmt">// ALGORYTM UNSCRAMBLING — funkcja odwrotna P⁻¹</span><br>
+        inv = <span class="fn">inversePerm</span>(perm) &nbsp;<span class="cmt">// inv[perm[i]] = i</span><br>
+        <span class="kw">for</span> i in [<span class="num">0</span>..N): dst[inv[i]] = scrambled[i]
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Parametry permutacji</div>
+          <div class="form-row">
+            <div class="field"><label>Seed (klucz główny)</label><input type="number" id="e2seed" value="314159" min="0" max="999999999"></div>
+            <div class="field"><label>Tryb permutacji</label>
+              <select id="e2mode">
+                <option value="pixels">Piksele (pełna permutacja)</option>
+                <option value="rows">Wiersze</option>
+                <option value="cols">Kolumny</option>
+                <option value="blocks">Bloki 8×8</option>
+              </select>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle" id="e2wrongToggle" onclick="toggleWrong(2)"><div class="toggle-knob"></div></div>
+            <span class="toggle-label">Błędny klucz (seed+1) — test efektu lawinowego</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Akcje</div>
+          <div class="btn-row">
+            <button class="btn btn-scramble" onclick="e2Scramble()">⟳ Scramble</button>
+            <button class="btn btn-unscramble" onclick="e2Unscramble()">⟲ Unscramble</button>
+            <button class="btn btn-save" onclick="saveCanvas('e2Scrambled')">↓ Zapisz</button>
+          </div>
+          <div class="infobox blue">
+            <strong>Odpowiedź na pytania:</strong> Brak efektu lawinowego — histogram pikseli identyczny z oryginałem. Known-plaintext attack rekonstruuje P w czasie O(N).
+          </div>
+        </div>
+      </div>
+
+      <div class="canvas-grid">
+        <div class="canvas-box">
+          <div class="canvas-label">Oryginalny</div>
+          <div class="canvas-wrap"><canvas id="e2Orig"></canvas><div class="canvas-placeholder" id="e2OrigPh">Wczytaj obraz</div></div>
+        </div>
+        <div class="canvas-box">
+          <div class="canvas-label">Po permutacji</div>
+          <div class="canvas-wrap"><canvas id="e2Scrambled"></canvas><div class="canvas-placeholder" id="e2ScrPh">Naciśnij Scramble</div></div>
+        </div>
+        <div class="canvas-box">
+          <div class="canvas-label">Odtworzony P⁻¹(P(i))=i</div>
+          <div class="canvas-wrap"><canvas id="e2Restored"></canvas><div class="canvas-placeholder" id="e2ResPh">Naciśnij Unscramble</div></div>
+        </div>
+      </div>
+
+      <div class="metrics-bar">
+        <div class="metric"><span class="metric-val" id="e2mCorr">—</span><span class="metric-lbl">Korelacja po permutacji</span></div>
+        <div class="metric"><span class="metric-val" id="e2mEnt">—</span><span class="metric-lbl">Entropia (bit)</span></div>
+        <div class="metric"><span class="metric-val" id="e2mDiff">—</span><span class="metric-lbl">Błąd unscrambl. (MAE)</span></div>
+        <div class="metric"><span class="metric-val" id="e2mPerfect">—</span><span class="metric-lbl">Odtworzenie</span></div>
+      </div>
+
+      <div class="log-box" id="e2log"><div class="log-entry log-info">// Gotowy. Fisher-Yates z jawną inwersją P⁻¹.</div></div>
+    </div>
+
+    <!-- PANEL 2 — STAGE 3 -->
+    <div class="panel" id="p2">
+      <div class="panel-header">
+        <div class="panel-title"><span class="stage-num">03 /</span> Mechanizm wzmacniający — Hybryda C <span class="tag tag-hybrid">Perm + Substytucja</span></div>
+        <div class="panel-desc">
+          Klasa C: Permutacja Fisher-Yates + Substytucja XOR sekwencją z mapy logistycznej x<sub>n+1</sub> = r·xₙ·(1−xₙ).
+          Kolejność: substytucja f(p,k) → permutacja P. Unscrambling: P⁻¹ → f⁻¹ = f (XOR jest własną odwrotnością).
+        </div>
+      </div>
+
+      <div class="algo-box">
+        <span class="cmt">// ALGORYTM SCRAMBLING — Hybryda (substytucja → permutacja)</span><br>
+        logSeq = <span class="fn">logisticMap</span>(r, x0, N) &nbsp;<span class="cmt">// 500 iteracji burn-in</span><br>
+        <span class="kw">for</span> i in [<span class="num">0</span>..N): key = floor(logSeq[i] * <span class="num">256</span>)<br>
+        &nbsp;&nbsp;tmp[i].R = src[i].R ⊕ key &nbsp;G = src[i].G ⊕ ((key*<span class="num">131</span>+<span class="num">17</span>) &amp; <span class="num">0xFF</span>)<br>
+        perm = <span class="fn">fisherYates</span>(N, seed) → dst[perm[i]] = tmp[i]<br><br>
+        <span class="cmt">// ALGORYTM UNSCRAMBLING (P⁻¹ → XOR ponownie = oryginał)</span><br>
+        inv = <span class="fn">inversePerm</span>(perm) → applyXOR(tmp, logSeq) → dst
+      </div>
+
+      <div class="form-row-3">
+        <div class="field"><label>Seed permutacji</label><input type="number" id="e3seed" value="271828" min="0" max="999999999"></div>
+        <div class="field"><label>Parametr r mapy logistycznej</label><input type="number" id="e3r" value="3.9994" min="3.57" max="4.0" step="0.0001"></div>
+        <div class="field"><label>x₀ — warunek początkowy</label><input type="number" id="e3x0" value="0.4213" min="0.001" max="0.999" step="0.0001"></div>
+      </div>
+
+      <div class="grid-2" style="margin-bottom:12px;">
+        <div class="field"><label>Mechanizm</label>
+          <select id="e3mode">
+            <option value="hybrid">Hybryda C: permutacja + XOR logistic</option>
+            <option value="subst_only">Tylko substytucja f(p,k) — XOR logistic</option>
+            <option value="perm_only">Tylko permutacja — jak Etap 2</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:flex-end;">
+          <div class="toggle-row" style="width:100%">
+            <div class="toggle" id="e3wrongToggle" onclick="toggleWrong(3)"><div class="toggle-knob"></div></div>
+            <span class="toggle-label">Błędny klucz (seed+1, x₀+0.001)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-scramble" onclick="e3Scramble()">⟳ Scramble</button>
+        <button class="btn btn-unscramble" onclick="e3Unscramble()">⟲ Unscramble</button>
+        <button class="btn btn-save" onclick="saveCanvas('e3Scrambled')">↓ Zapisz scrambled</button>
+        <button class="btn btn-save" onclick="saveCanvas('e3Restored')">↓ Zapisz restored</button>
+      </div>
+
+      <div class="canvas-grid">
+        <div class="canvas-box">
+          <div class="canvas-label">Oryginalny</div>
+          <div class="canvas-wrap"><canvas id="e3Orig"></canvas><div class="canvas-placeholder" id="e3OrigPh">Wczytaj obraz</div></div>
+        </div>
+        <div class="canvas-box">
+          <div class="canvas-label">Po hybryzie (Etap 3)</div>
+          <div class="canvas-wrap"><canvas id="e3Scrambled"></canvas><div class="canvas-placeholder" id="e3ScrPh">Naciśnij Scramble</div></div>
+        </div>
+        <div class="canvas-box">
+          <div class="canvas-label">Odtworzony</div>
+          <div class="canvas-wrap"><canvas id="e3Restored"></canvas><div class="canvas-placeholder" id="e3ResPh">Naciśnij Unscramble</div></div>
+        </div>
+      </div>
+
+      <div class="metrics-bar">
+        <div class="metric"><span class="metric-val" id="e3mCorr">—</span><span class="metric-lbl">Korelacja po scramblingu</span></div>
+        <div class="metric"><span class="metric-val" id="e3mEnt">—</span><span class="metric-lbl">Entropia (bit)</span></div>
+        <div class="metric"><span class="metric-val" id="e3mDiff">—</span><span class="metric-lbl">Błąd unscrambl. (MAE)</span></div>
+        <div class="metric"><span class="metric-val" id="e3mPerfect">—</span><span class="metric-lbl">Odtworzenie</span></div>
+      </div>
+
+      <div class="infobox amber">
+        <strong>Precyzja numeryczna:</strong> Mapa logistyczna dla r &gt; 3.57 wykazuje chaos deterministyczny. Zmiana x₀ o 0.001 całkowicie zmienia sekwencję XOR po ≈50 iteracjach. IEEE 754 float64 — sekwencja odtwarzalna na tej samej maszynie.
+      </div>
+
+      <div class="log-box" id="e3log"><div class="log-entry log-info">// Gotowy. Hybryda: XOR (mapa logistyczna) + permutacja Fisher-Yates.</div></div>
+    </div>
+
+    <!-- PANEL 3 — ANALIZA -->
+    <div class="panel" id="p3">
+      <div class="panel-header">
+        <div class="panel-title"><span class="stage-num">04 /</span> Analiza eksperymentalna</div>
+        <div class="panel-desc">Porównanie Etapów 1, 2 i 3 pod kątem utraty struktury, odwracalności i wrażliwości na klucz.</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-scramble" onclick="runFullAnalysis()" style="width:100%;justify-content:center;">⟳ Uruchom pełną analizę porównawczą</button>
+      </div>
+
+      <div class="analysis-section">
+        <div class="analysis-title">Korelacja sąsiednich pikseli (pozioma)</div>
+        <div class="bar-chart">
+          <div class="bar-item"><div class="bar-header"><span class="bar-name">Oryginalny obraz</span><span class="bar-value" id="bc_orig">—</span></div><div class="bar-track"><div class="bar-fill" id="bf_orig" style="width:0%;background:#5b6af0"></div></div></div>
+          <div class="bar-item"><div class="bar-header"><span class="bar-name">Etap 1 — Naiwny scrambling</span><span class="bar-value" id="bc_e1">—</span></div><div class="bar-track"><div class="bar-fill" id="bf_e1" style="width:0%;background:#f59e0b"></div></div></div>
+          <div class="bar-item"><div class="bar-header"><span class="bar-name">Etap 2 — Permutacja kluczem</span><span class="bar-value" id="bc_e2">—</span></div><div class="bar-track"><div class="bar-fill" id="bf_e2" style="width:0%;background:#22d3a0"></div></div></div>
+          <div class="bar-item"><div class="bar-header"><span class="bar-name">Etap 3 — Hybryda</span><span class="bar-value" id="bc_e3">—</span></div><div class="bar-track"><div class="bar-fill" id="bf_e3" style="width:0%;background:#f04343"></div></div></div>
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <div class="analysis-section">
+        <div class="analysis-title">Błąd odtworzenia przy błędnym kluczu (MAE)</div>
+        <div class="bar-chart">
+          <div class="bar-item"><div class="bar-header"><span class="bar-name">Etap 1 — shift+1</span><span class="bar-value" id="be_e1">—</span></div><div class="bar-track"><div class="bar-fill" id="bef_e1" style="width:0%;background:#f59e0b"></div></div></div>
+          <div class="bar-item"><div class="bar-header"><span class="bar-name">Etap 2 — seed+1</span><span class="bar-value" id="be_e2">—</span></div><div class="bar-track"><div class="bar-fill" id="bef_e2" style="width:0%;background:#22d3a0"></div></div></div>
+          <div class="bar-item"><div class="bar-header"><span class="bar-name">Etap 3 — seed+1, x₀+0.001</span><span class="bar-value" id="be_e3">—</span></div><div class="bar-track"><div class="bar-fill" id="bef_e3" style="width:0%;background:#f04343"></div></div></div>
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <div class="analysis-section">
+        <div class="analysis-title">Wizualna różnica obrazu (unscramble błędnym kluczem)</div>
+        <div class="diff-row">
+          <div class="diff-canvas-wrap">
+            <div class="diff-label">Etap 1 — błędny klucz</div>
+            <canvas id="diffE1" height="128"></canvas>
+          </div>
+          <div class="diff-canvas-wrap">
+            <div class="diff-label">Etap 3 — błędny klucz</div>
+            <canvas id="diffE3" height="128"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <div class="analysis-section">
+        <div class="analysis-title">Tabela porównawcza</div>
+        <div class="compare-grid">
+          <div class="compare-card">
+            <div class="stage-title">Etap 1</div>
+            <div class="stage-sub">Naiwny shift wierszy/kolumn</div>
+            <div class="compare-row"><span class="compare-key">Korelacja</span><span class="compare-val" id="ct_e1_corr">—</span></div>
+            <div class="compare-row"><span class="compare-key">Entropia</span><span class="compare-val" id="ct_e1_ent">—</span></div>
+            <div class="compare-row"><span class="compare-key">MAE błędny klucz</span><span class="compare-val" id="ct_e1_err">—</span></div>
+            <div class="compare-row"><span class="compare-key">Odwracalność</span><span class="compare-val c-green">✓ Pełna</span></div>
+            <div class="compare-row"><span class="compare-key">Struktury widoczne</span><span class="compare-val c-red">✗ Tak</span></div>
+            <div class="compare-row"><span class="compare-key">Efekt lawinowy</span><span class="compare-val c-red">✗ Brak</span></div>
+          </div>
+          <div class="compare-card">
+            <div class="stage-title">Etap 2</div>
+            <div class="stage-sub">Fisher-Yates permutacja</div>
+            <div class="compare-row"><span class="compare-key">Korelacja</span><span class="compare-val" id="ct_e2_corr">—</span></div>
+            <div class="compare-row"><span class="compare-key">Entropia</span><span class="compare-val" id="ct_e2_ent">—</span></div>
+            <div class="compare-row"><span class="compare-key">MAE błędny klucz</span><span class="compare-val" id="ct_e2_err">—</span></div>
+            <div class="compare-row"><span class="compare-key">Odwracalność</span><span class="compare-val c-green">✓ P⁻¹(P(i))=i</span></div>
+            <div class="compare-row"><span class="compare-key">Struktury widoczne</span><span class="compare-val c-green">✓ Nie</span></div>
+            <div class="compare-row"><span class="compare-key">Efekt lawinowy</span><span class="compare-val c-red">✗ Brak</span></div>
+          </div>
+          <div class="compare-card">
+            <div class="stage-title">Etap 3</div>
+            <div class="stage-sub">Hybryda: perm + XOR logistic</div>
+            <div class="compare-row"><span class="compare-key">Korelacja</span><span class="compare-val" id="ct_e3_corr">—</span></div>
+            <div class="compare-row"><span class="compare-key">Entropia</span><span class="compare-val" id="ct_e3_ent">—</span></div>
+            <div class="compare-row"><span class="compare-key">MAE błędny klucz</span><span class="compare-val" id="ct_e3_err">—</span></div>
+            <div class="compare-row"><span class="compare-key">Odwracalność</span><span class="compare-val c-green">✓ Pełna</span></div>
+            <div class="compare-row"><span class="compare-key">Struktury widoczne</span><span class="compare-val c-green">✓ Nie</span></div>
+            <div class="compare-row"><span class="compare-key">Efekt lawinowy</span><span class="compare-val c-amber">≈ Częściowy</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="log-box" id="analysisLog"><div class="log-entry log-info">// Uruchom eksperymenty w etapach 1–3, następnie kliknij "Uruchom pełną analizę".</div></div>
+    </div>
+
+    <!-- PANEL 4 — KRYTYKA -->
+    <div class="panel" id="p4">
+      <div class="panel-header">
+        <div class="panel-title"><span class="stage-num">05 /</span> Krytyka własnego rozwiązania</div>
+        <div class="panel-desc">"Dlaczego moje rozwiązanie NIE jest bezpiecznym szyfrem" — §7 wymagań projektu.</div>
+      </div>
+
+      <div class="infobox red">
+        <strong>Uwaga:</strong> Projekt ma cel dydaktyczny, nie kryptograficzny. Każde rozwiązanie traktujemy jako eksperyment ilustrujący różnicę między wizualnym chaosem a bezpieczeństwem informacji.
+      </div>
+
+      <div class="crit-item">
+        <div class="crit-q"><span class="q-num">01.</span> Jaką informację atakujący nadal może odzyskać?</div>
+        <div class="crit-a">
+          <strong>Etap 1:</strong> Pełna struktura obrazu jest widoczna — przesunięcie cykliczne zachowuje wszystkie lokalne zależności między pikselami. Histogram wartości identyczny z oryginałem.<br><br>
+          <strong>Etap 2:</strong> Histogram wartości kanałów RGB jest bitowo identyczny z oryginałem (permutacja nie zmienia wartości). Atakujący zna rozkład statystyczny, może rozpoznać typ obrazu.<br><br>
+          <strong>Etap 3:</strong> Rozkład po substytucji XOR jest pseudolosowy, ale entropia nie przekracza 8 bit/kanał. Korelacja między kanałami R/G/B może zdradzać typ obrazu.
+        </div>
+        <div class="crit-ref">→ histogram(permuted) = histogram(original) dla Etapu 2; entropia ≤ 8.0 bit zawsze</div>
+      </div>
+
+      <hr class="sep">
+
+      <div class="crit-item">
+        <div class="crit-q"><span class="q-num">02.</span> Co dzieje się przy ataku known-plaintext?</div>
+        <div class="crit-a">
+          <strong>Etap 1:</strong> Jedna para pikseli ujawnia oba klucze: k₁ = y'−y (mod H), k₂ = x'−x (mod W).<br><br>
+          <strong>Etap 2:</strong> Z par (orig, scrambled) atakujący odczytuje perm[i] bezpośrednio. Cała permutacja P rekonstruowana w O(N). Można odszyfrować dowolny obraz zaszyfrowany tym kluczem.<br><br>
+          <strong>Etap 3:</strong> Po odtworzeniu P (jak wyżej), atakujący oblicza logSeq[i] = orig[i].R ⊕ tmp[i].R. Cała sekwencja logistyczna ujawniona — można szyfrować inne obrazy tym kluczem.
+        </div>
+        <div class="crit-ref">→ perm[i] bezpośrednio z par (src[i], dst[perm[i]]); logSeq[i] = src[i].R ⊕ inv_perm(dst)[i].R</div>
+      </div>
+
+      <hr class="sep">
+
+      <div class="crit-item">
+        <div class="crit-q"><span class="q-num">03.</span> Dlaczego zwiększanie chaosu nie rozwiązuje problemu?</div>
+        <div class="crit-a">
+          1. <strong>Deterministyczność nie zanika:</strong> Te same parametry → ta sama sekwencja. Chaos deterministyczny ≠ losowość kryptograficzna.<br><br>
+          2. <strong>Mała przestrzeń kluczowa:</strong> Klucz to (seed, r, x₀) — przestrzeń znacznie mniejsza niż wymagane 2¹²⁸.<br><br>
+          3. <strong>Precyzja numeryczna:</strong> Dla r ≈ 4.0 sekwencja jest nieprzenośna między architekturami FPU — algorytm może tracić odwracalność między różnymi środowiskami.<br><br>
+          4. <strong>Brak dyfuzji Shannona:</strong> Jeden piksel wejściowy wpływa na co najwyżej jeden piksel wyjściowy. AES miesza każdy bit klucza z każdym bitem bloku.
+        </div>
+        <div class="crit-ref">→ x_{n+1} = r·xₙ·(1−xₙ) jest bijekcją na (0,1) tylko dla r≤4; obcięcie do 8-bit niszczy odwracalność dla r=4.0</div>
+      </div>
+
+      <hr class="sep">
+
+      <div class="infobox green">
+        <strong>Wniosek końcowy:</strong> Projekt demonstruje fundamentalną różnicę: <em>wizualny chaos ≠ bezpieczeństwo kryptograficzne</em>.
+        Permutacja niszczy struktury przestrzenne, ale zachowuje statystykę. Substytucja XOR zmienia wartości, ale jest trywialna przy known-plaintext.
+        Bezpieczny szyfr wymaga: przestrzeni kluczowej &gt;2¹²⁸, efektu lawinowego, dyfuzji i konfuzji (Shannon 1949). Żaden z 3 etapów tych warunków nie spełnia — i to jest zamierzonym efektem dydaktycznym.
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
